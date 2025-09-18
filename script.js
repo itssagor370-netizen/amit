@@ -1,4 +1,4 @@
-// Initialize Firebase (use your config - this one is from uploaded files)
+// Firebase init
 const firebaseConfig = {
   apiKey: "AIzaSyAW5UF5JY32vdRpscSSWNsCxEddTRePSS0",
   authDomain: "mobi-9371b.firebaseapp.com",
@@ -11,124 +11,77 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-/* -----------------------
-   Auth UI bindings
-   ----------------------- */
-const openAuth = document.getElementById('openAuth');
-const authModal = document.getElementById('authModal');
-const closeAuth = document.getElementById('closeAuth');
-const backdrop = document.getElementById('backdrop');
-const tabSignIn = document.getElementById('tabSignIn');
-const tabSignUp = document.getElementById('tabSignUp');
-const nameField = document.getElementById('nameField');
-const authForm = document.getElementById('authForm');
-const submitAuth = document.getElementById('submitAuth');
-const googleSignIn = document.getElementById('googleSignIn');
-const authMessage = document.getElementById('authMessage');
-const forgotBtn = document.getElementById('forgotBtn');
-const closeAfterAuth = document.getElementById('closeAfterAuth');
-const openLogoutBtn = document.getElementById('logout');
-const openAuthBtn = document.getElementById('openAuth');
-const userBadge = document.getElementById('userBadge');
+// Toggle modal
+document.getElementById("openAuth").onclick = ()=> document.getElementById("authModal").style.display="flex";
+document.getElementById("closeAuth").onclick = ()=> document.getElementById("authModal").style.display="none";
 
-let isSignUp = false;
-
-function openModal(){ authModal.classList.remove('hidden'); authModal.setAttribute('aria-hidden','false'); authMessage.textContent = ''; }
-function closeModal(){ authModal.classList.add('hidden'); authModal.setAttribute('aria-hidden','true'); }
-
-openAuth.addEventListener('click', openModal);
-closeAuth.addEventListener('click', closeModal);
-backdrop.addEventListener('click', closeModal);
-tabSignIn.addEventListener('click', ()=>{ setMode(false); });
-tabSignUp.addEventListener('click', ()=>{ setMode(true); });
-
-function setMode(signUp){
-  isSignUp = !!signUp;
-  tabSignIn.classList.toggle('active', !isSignUp);
-  tabSignUp.classList.toggle('active', isSignUp);
-  nameField.classList.toggle('hidden', !isSignUp);
-  submitAuth.textContent = isSignUp ? 'Create account' : 'Sign in';
-  authMessage.textContent = '';
-}
-
-authForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  authMessage.textContent = '';
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const displayName = document.getElementById('displayName').value.trim();
-
-  try{
-    if(isSignUp){
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      if(displayName) await userCredential.user.updateProfile({displayName});
-      authMessage.style.color = '#8ef9c1';
-      authMessage.textContent = 'Account created, signed in!';
-      closeModal();
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-      authMessage.style.color = '#8ef9c1';
-      authMessage.textContent = 'Signed in!';
-      closeModal();
+// Tabs in modal
+document.querySelectorAll('.modal .tab').forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll('.modal .tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    if(tab.dataset.auth==="login"){
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('signupForm').classList.add('hidden');
+    }else{
+      document.getElementById('signupForm').classList.remove('hidden');
+      document.getElementById('loginForm').classList.add('hidden');
     }
-  }catch(err){
-    authMessage.style.color = '';
-    authMessage.textContent = err.message || 'Authentication error';
-  }
+  };
 });
 
-// Google sign-in
-googleSignIn.addEventListener('click', async ()=>{
-  const provider = new firebase.auth.GoogleAuthProvider();
-  try{
-    await auth.signInWithPopup(provider);
-    closeModal();
-  }catch(err){
-    authMessage.textContent = err.message || 'Google sign-in failed';
-  }
+// Login
+document.getElementById("loginForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const email=document.getElementById("loginEmail").value;
+  const pass=document.getElementById("loginPassword").value;
+  auth.signInWithEmailAndPassword(email,pass).catch(err=>alert(err.message));
 });
 
-// Forgot password
-forgotBtn.addEventListener('click', async ()=>{
-  const email = document.getElementById('email').value.trim();
-  if(!email){ authMessage.textContent = 'Please enter your email above first.'; return; }
-  try{
-    await auth.sendPasswordResetEmail(email);
-    authMessage.style.color = '#8ef9c1';
-    authMessage.textContent = 'Password reset email sent. Check your inbox.';
-  }catch(err){
-    authMessage.style.color = '';
-    authMessage.textContent = err.message || 'Reset failed';
-  }
+// Signup
+document.getElementById("signupForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const email=document.getElementById("signupEmail").value;
+  const pass=document.getElementById("signupPassword").value;
+  auth.createUserWithEmailAndPassword(email,pass).catch(err=>alert(err.message));
 });
 
-/* -----------------------
-   Auth state observer - toggle dashboard
-   ----------------------- */
-const dashboardApp = document.getElementById('dashboardApp');
-auth.onAuthStateChanged(user=>{
-  if(user){
-    // show dashboard
-    dashboardApp.style.display = 'block';
-    openAuthBtn.style.display = 'none';
-    openLogoutBtn.style.display = 'inline-flex';
-    userBadge.style.display = 'inline-block';
-    userBadge.textContent = user.displayName ? user.displayName + ' • ' + user.email : user.email;
-    // render app (dashboard functions live below)
-    renderAll();
-  } else {
-    dashboardApp.style.display = 'none';
-    openAuthBtn.style.display = 'inline-flex';
-    openLogoutBtn.style.display = 'none';
-    userBadge.style.display = 'none';
-  }
-});
+// Forgot
+document.getElementById("forgotPass").onclick = ()=>{
+  const email=document.getElementById("loginEmail").value;
+  if(!email) return alert("Enter email first");
+  auth.sendPasswordResetEmail(email).then(()=>alert("Password reset sent")).catch(err=>alert(err.message));
+};
+
+// Google login
+document.getElementById("googleLogin").onclick=()=>{
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err=>alert(err.message));
+};
 
 // Logout
-openLogoutBtn.addEventListener('click', ()=> auth.signOut());
+document.getElementById("logout").onclick=()=>auth.signOut();
+
+// Auth state listener
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById("dashboardApp").style.display="block";
+    document.getElementById("logout").style.display="inline-flex";
+    document.getElementById("openAuth").style.display="none";
+    document.getElementById("authModal").style.display="none";
+    renderAll();
+  }else{
+    document.getElementById("dashboardApp").style.display="none";
+    document.getElementById("logout").style.display="none";
+    document.getElementById("openAuth").style.display="inline-flex";
+  }
+});
 
 /* -----------------------
-   Storage & utilities (dashboard code)
+   Customer Management (from your original script.js)
+   ----------------------- */
+/* -----------------------
+   Storage & utilities
    ----------------------- */
 const STORAGE_KEY = 'mobixpress_customers_v1';
 function loadCustomers(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [] } catch(e){console.error(e); return []} }
@@ -242,6 +195,7 @@ function renderAll(){
     const list = loadCustomers();
     renderStats(list);
     renderRecent(list);
+    // default: show all customers sorted by createdAt desc
     renderAllCustomers(list);
 }
 
@@ -350,7 +304,7 @@ document.getElementById('export-json').addEventListener('click', ()=>{
     showToast('Exported','Data exported to JSON');
 });
 
-// Import JSON (maps fields)
+// Import JSON (maps phone -> deviceModel for older files)
 document.getElementById('import-file').addEventListener('change', (e)=>{
     const file = e.target.files[0];
     if (!file) return;
@@ -359,6 +313,7 @@ document.getElementById('import-file').addEventListener('change', (e)=>{
         try {
             const data = JSON.parse(reader.result);
             if (!Array.isArray(data)) throw new Error('Invalid format');
+            // Normalize imported objects
             const normalized = data.map(r => ({
                 id: r.id || uid(),
                 investorName: r.investorName || r.investor || r.Investor || '',
@@ -371,7 +326,7 @@ document.getElementById('import-file').addEventListener('change', (e)=>{
                 startDate: r.startDate || r.StartDate || '',
                 status: r.status || r.Status || 'active',
                 notes: r.notes || r.Notes || '',
-                payments: Array.isArray(r.payments) ? r.payments : (typeof r.payments === 'string' && r.payments.trim().startsWith('[') ? JSON.parse(r.payments) : []),
+                payments: Array.isArray(r.payments) ? r.payments : (typeof r.payments === 'string' && r.payments.trim().startsWith('[') ? JSON.parse(r.payments) : (r.Payments && typeof r.Payments === 'string' && r.Payments.trim().startsWith('[') ? JSON.parse(r.Payments) : [])),
                 createdAt: r.createdAt || new Date().toISOString()
             }));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
